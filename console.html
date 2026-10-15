@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multi-Agent Orchestrator — console</title>
+<style>
+  :root{--bg:#0b0d16;--panel:#12141f;--line:#242838;--fg:#e9eaf2;--muted:#9aa0b4;
+        --accent:#7c5cff;--ok:#39d98a;--warn:#ffb020;--bad:#ff5c72}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);
+         position:sticky;top:0;background:#0b0d16ee;backdrop-filter:blur(6px);z-index:5}
+  h1{font-size:16px;margin:0;font-weight:600}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted);font-size:12px}
+  .pill b{color:var(--fg)}
+  main{padding:20px 22px 60px;display:grid;gap:18px;max-width:1240px;margin:0 auto}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  section h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{ text-align:left;color:var(--muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:7px 8px;border-bottom:1px solid #1b1e2b;vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .st{font-weight:600}
+  .ONLINE,.completed,.ok{color:var(--ok)}
+  .OFFLINE,.failed,.unrouted{color:var(--bad)}
+  .queued,.leased,.running{color:var(--warn)}
+  .cap{display:inline-block;background:#ffffff0d;border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin:1px 2px 1px 0;font-size:11px;color:var(--muted)}
+  code,pre,input,select,textarea,button{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);font-size:12px;max-height:180px;overflow:auto}
+  input,select,textarea{background:#0e1018;border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:8px 10px;width:100%}
+  textarea{min-height:64px;resize:vertical}
+  button{background:var(--accent);border:0;color:#fff;font-weight:600;border-radius:8px;padding:9px 14px;cursor:pointer}
+  button.ghost{background:#ffffff10;border:1px solid var(--line);color:var(--fg);font-weight:500}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1 1 200px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  .events{max-height:340px;overflow:auto;font-size:12px}
+  .events div{padding:3px 0;border-bottom:1px solid #1b1e2b}
+  .t{color:var(--muted);margin-right:8px}
+  .k{color:var(--accent)}
+  .hint{color:var(--muted);font-size:12px}
+  #gate{position:fixed;inset:0;background:#0b0d16f2;display:flex;align-items:center;justify-content:center;z-index:9}
+  #gate .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(520px,92vw)}
+  .msg{margin-top:10px;font-size:12px;color:var(--bad);min-height:16px}
+  .key{word-break:break-all;color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="gate"><div class="box">
+  <h1 style="margin-bottom:6px">Console orchestrateur</h1>
+  <p class="hint">Colle la <b>clé opérateur</b> (elle est dans <code>.keys.json</code>, champ <code>admin_key</code>).</p>
+  <input id="keyIn" type="password" placeholder="adm_…" autocomplete="off">
+  <div class="row" style="margin-top:12px">
+    <button onclick="saveKey()">Ouvrir la console</button>
+    <button class="ghost" onclick="loadKeysFile()">Charger .keys.json</button>
+  </div>
+  <div class="msg" id="gateMsg"></div>
+</div></div>
+
+<header>
+  <h1>Multi-Agent Orchestrator</h1>
+  <span class="pill" id="pHealth">—</span>
+  <span class="pill" id="pAgents">agents —</span>
+  <span class="pill" id="pClock">—</span>
+  <span style="flex:1"></span>
+  <span class="pill">clé <b id="pKey">—</b></span>
+  <button class="ghost" onclick="forget()">Changer de clé</button>
+</header>
+
+<main>
+  <section>
+    <h2>Clé d'enregistrement</h2>
+    <div class="row">
+      <div style="flex:2 1 420px">
+        <input id="enr" readonly value="(chargement…)" onclick="this.select()">
+      </div>
+      <div style="flex:0 0 auto"><button class="ghost" onclick="toggleKey()" id="btnReveal">Masquer</button></div>
+      <div style="flex:0 0 auto"><button class="ghost" onclick="copyKey()">Copier</button></div>
+      <div style="flex:0 0 auto"><button class="ghost" onclick="rotateKey()">Tourner la clé</button></div>
+    </div>
+    <p class="hint" id="keyMeta">…</p>
+  </section>
+
+  <section>
+    <h2>Confier une tâche</h2>
+    <div class="row">
+      <div><input id="tCap" placeholder="capability (ex. network_security)"></div>
+      <div><input id="tAct" placeholder="action (optionnel : security_audit, system_report…)"></div>
+      <div><input id="tAgent" placeholder="forcer un agent (optionnel)"></div>
+    </div>
+    <div style="margin-top:10px"><textarea id="tInstr" placeholder="instruction exécutable par l'agent…">Audit de sécurité lecture seule : état du pare-feu, Defender, ports en écoute.</textarea></div>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:0 0 auto"><button onclick="sendTask()">Router la tâche</button></div>
+      <div class="hint" id="tMsg" style="flex:1 1 300px"></div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>Agents connus</h2>
+      <table><thead><tr><th>Agent</th><th>État</th><th>Vu</th><th>Capacités</th><th>Tâches</th></tr></thead>
+      <tbody id="agents"></tbody></table>
+    </section>
+    <section>
+      <h2>Journal d'événements</h2>
+      <div class="events" id="events"></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Tâches</h2>
+    <table><thead><tr><th>ID</th><th>Capabilité</th><th>Agent</th><th>État</th><th>Créée</th><th>Résultat</th><th></th></tr></thead>
+    <tbody id="tasks"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Brancher un agent</h2>
+    <pre># protocole multi-agent orchestrator (netsec-agent, Node)
+cd "C:/Users/MAC BOOK PRO/agents/netsec-agent"
+ORCH_URL=http://127.0.0.1:8000 ENROLLMENT_KEY=&lt;clé ci-dessus&gt; node agent.mjs enroll
+node agent.mjs work        # heartbeat + exécution des tâches
+
+# protocole réseau local (builder.py, Python)
+set LAB_ORCH=http://127.0.0.1:8000
+set LAB_MASTER_KEY=&lt;clé opérateur&gt;
+python builder.py --objective "…"</pre>
+  </section>
+</main>
+
+<script>
+let KEY = localStorage.getItem("orch_key") || "";
+let reveal = false, keys = null;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, {...opts, headers: {"X-API-Key": KEY, "Content-Type": "application/json", ...(opts.headers||{})}});
+  let body = null; try { body = await r.json(); } catch {}
+  return { status: r.status, body };
+};
+function gate(show){ $("gate").style.display = show ? "flex" : "none"; }
+function saveKey(){ KEY = $("keyIn").value.trim(); localStorage.setItem("orch_key", KEY); gate(false); refresh(); }
+function forget(){ localStorage.removeItem("orch_key"); KEY=""; gate(true); }
+async function loadKeysFile(){
+  try {
+    const t = await fetch("/keys.json").then(r => r.json());
+    $("keyIn").value = t.admin_key; $("gateMsg").textContent = "clé chargée depuis .keys.json";
+  } catch { $("gateMsg").textContent = "impossible de lire /keys.json — copie la valeur à la main."; }
+}
+function toggleKey(){ reveal = !reveal; paintKey(); }
+
+async function refresh(){
+  const h = await api("/health");
+  if (h.status === 401) { $("gateMsg").textContent = "clé opérateur refusée."; gate(true); return; }
+  if (h.body) {
+    $("pHealth").innerHTML = "état <b>" + h.body.status + "</b> · " + h.body.service + " " + h.body.version;
+    $("pAgents").innerHTML = "agents <b>" + h.body.agents_online + "/" + h.body.agents_total + "</b>";
+    $("pClock").textContent = new Date().toLocaleTimeString();
+  }
+  const [a, t, e] = await Promise.all([api("/api/v1/agents"), api("/api/v1/tasks?limit=40"), api("/api/v1/events?limit=120")]);
+  if (a.body) {
+    $("agents").innerHTML = a.body.data.agents.map(x => `<tr>
+      <td><b>${esc(x.name)}</b><div class="hint">${esc(x.role||"")} · ${esc(x.runtime||"")} · ${esc(x.protocol)}</div></td>
+      <td class="st ${x.status}">${x.status}</td>
+      <td class="hint">${x.last_seen_age_s == null ? "jamais" : "il y a " + x.last_seen_age_s + " s"}</td>
+      <td>${(x.capabilities||[]).map(c => `<span class="cap">${esc(c)}</span>`).join("")}</td>
+      <td class="hint">${x.tasks_done} ok / ${x.tasks_failed} échec · ${x.pending_tasks} en attente</td></tr>`).join("")
+      || `<tr><td colspan="5" class="hint">aucun agent inscrit</td></tr>`;
+  }
+  if (t.body) {
+    $("tasks").innerHTML = t.body.data.tasks.map(x => `<tr>
+      <td><code>${esc(x.task_id)}</code></td><td>${esc(x.capability)}<div class="hint">${esc(x.action||"")}</div></td>
+      <td>${esc(x.agent_name||"—")}</td><td class="st ${x.status}">${x.status}</td>
+      <td class="hint">${esc((x.created_at||"").slice(11,19))}</td>
+      <td><pre>${esc((x.result||x.error||"").slice(0,700))}</pre></td>
+      <td><button class="ghost" onclick="requeue('${x.task_id}')">Relancer</button></td></tr>`).join("")
+      || `<tr><td colspan="7" class="hint">aucune tâche</td></tr>`;
+  }
+  if (e.body) {
+    $("events").innerHTML = e.body.data.events.map(x => `<div><span class="t">${esc(x.at.slice(11,19))}</span><span class="k">${esc(x.kind)}</span> ${esc(x.message)}</div>`).join("")
+      || `<div class="hint">journal vide</div>`;
+  }
+}
+function paintKey(){
+  if (!keys) return;
+  $("enr").value = reveal ? keys.enrollment_key : keys.enrollment_key.replace(/.(?=.{6})/g, "•");
+}
+async function loadKeyInfo(){
+  const r = await api("/api/v1/settings/enrollment-key");
+  if (r.body && r.body.data) {
+    keys = r.body.data;
+    $("pKey").textContent = KEY.slice(0,7) + "…";
+    $("keyMeta").textContent = `créée ${r.body.data.created_at || "—"} · tournée ${r.body.data.rotated_at || "jamais"} · ${r.body.data.agents_enrolled} agent(s) inscrit(s)`;
+    paintKey();
+  }
+}
+function copyKey(){ navigator.clipboard.writeText(keys ? keys.enrollment_key : ""); }
+async function rotateKey(){
+  if (!confirm("Tourner la clé ? Les agents déjà inscrits gardent leur jeton ; les nouveaux enrôlements exigeront la nouvelle clé.")) return;
+  await api("/api/v1/settings/rotate-enrollment-key", {method:"POST"}); await loadKeyInfo();
+}
+async function sendTask(){
+  const r = await api("/api/v1/tasks", {method:"POST", body: JSON.stringify({
+    capability: $("tCap").value.trim(), action: $("tAct").value.trim() || null,
+    instruction: $("tInstr").value.trim(), agent_name: $("tAgent").value.trim() || null })});
+  $("tMsg").textContent = r.body && r.body.data ? `${r.status} — ${r.body.data.task_id} ${r.body.data.status}` + (r.body.data.routing ? ` (${r.body.data.routing})` : "")
+    : (r.body && r.body.error ? r.body.error.message : "erreur");
+  refresh();
+}
+async function requeue(id){ await api(`/api/v1/tasks/${id}/requeue`, {method:"POST"}); refresh(); }
+
+if (KEY) { gate(false); loadKeyInfo(); refresh(); setInterval(refresh, 2500); }
+else gate(true);
+$("keyIn").addEventListener("keydown", e => { if (e.key === "Enter") saveKey(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# clés générées au premier démarrage — jamais commitées
+.keys.json
+# base SQLite (agents, jetons hachés, tâches, journal)
+data/
+*.db
+*.db-wal
+*.db-shm
+__pycache__/
+*.pyc
+.venv/
+logs/

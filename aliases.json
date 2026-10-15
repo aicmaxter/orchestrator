@@ -1,0 +1,4 @@
+{
+  "security_analysis": ["vulnerability_assessment", "cybersecurity"],
+  "pentest": ["vulnerability_assessment"]
+}

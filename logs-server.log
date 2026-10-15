@@ -1,0 +1,20 @@
+
+  multi-agent-orchestrator 1.0.0 — http://127.0.0.1:8000
+  console  : http://127.0.0.1:8000/  (clé opérateur dans .keys.json)
+  API docs : http://127.0.0.1:8000/docs
+  base     : C:\Users\MAC BOOK PRO\orchestrator\data\orchestrateur.db
+
+[18:44:32] ORCH_START             multi-agent-orchestrator 1.0.0 sur http://127.0.0.1:8000 — base orchestrateur.db
+[18:45:02] TASK_ROUTED            tsk_9d72aad3a2c0 → netsec-agent (capability=network_security, capacité déclarée)
+[18:45:22] TASK_DELIVERED         tsk_9d72aad3a2c0 → netsec-agent
+[18:45:54] TASK_COMPLETED         tsk_9d72aad3a2c0 terminée par netsec-agent (1767 car.)
+[18:46:09] LAN_REGISTER           Builder Agent présenté au réseau (endpoint=http://127.0.0.1:8080, capacités=['web_development', 'application_development', 'frontend', 'backend'])
+[18:46:19] TASK_ROUTED            tsk_9f5e16310e34 → netsec-agent (capability=security_analysis, alias de capacité)
+[18:46:24] TASK_DELIVERED         tsk_9f5e16310e34 → netsec-agent
+[18:46:43] TASK_COMPLETED         tsk_9f5e16310e34 terminée par netsec-agent (1767 car.)
+[18:47:00] DELEGATE_REFUSED       X-API-Key (clé opérateur) requise.
+[18:47:00] TASK_UNROUTED          tsk_98b3a946fa42 capability=quantum_teleport — aucun agent ONLINE ne déclare la capacité 'quantum_teleport'
+[18:47:00] TASK_UNROUTED          tsk_6129f3bcf159 capability=research — aucun agent ONLINE ne déclare la capacité 'research'
+[18:47:01] TASK_UNROUTED          tsk_312b1c29dba3 capability=research — aucun agent ONLINE ne déclare la capacité 'research'
+[18:47:01] KEY_ROTATED            clé d'enregistrement tournée (les agents déjà inscrits gardent leur jeton)
+[18:48:00] KEY_READ               clé d'enregistrement consultée
