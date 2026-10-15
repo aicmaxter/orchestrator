@@ -50,6 +50,34 @@ nouveaux enrôlements exigent la nouvelle clé.
 | `data/orchestrateur.db` | agents, jetons (hachés), tâches, journal, réglages |
 | `.keys.json` | clés générées — **ne pas committer** |
 
+## Parc des agents
+
+| Agent | Protocole | Capacités | Actions réelles |
+|---|---|---|---|
+| `netsec-agent` (Node) | v1 | network_security, cybersecurity, vulnerability_assessment, threat_detection, incident_response, network_hardening | `system_report`, `security_audit`, `network_inventory` (lecture seule) |
+| `research-agent` (Node) | v1 | research, veille, sources | `brief` sourcé (Wikipédia, arXiv, Hacker News), `sources_check`, `fetch_page` |
+| `qa-agent` (Node) | v1 | testing, quality_assurance, qa, link_check | `html_check`, `link_check`, `smoke_http`, `test_plan` |
+| `builder-agent` (Python, LAN) | /register + /delegate | web_development, application_development, frontend, backend | `builder.py` délègue research → security_analysis → testing puis écrit la page |
+
+Mécanique commune des agents Node : `~/agents/agent-kit` (voir son README).
+Alias de capacités : `aliases.json` (`security_analysis` → `vulnerability_assessment`
+/ `cybersecurity`, `pentest` → `vulnerability_assessment`).
+
+## Chaîne LAB 3 prouvée de bout en bout (15/10/2026)
+
+```
+python builder.py --objective "Prépare une landing page sur les agents autonomes."
+[REGISTER  ] builder-01 présenté au réseau
+[DELEGATE  ] research          → research-agent  (2 938 car.)   28 s
+[DELEGATE  ] security_analysis → netsec-agent    (1 773 car.)   56 s
+[DELEGATE  ] testing           → qa-agent        (556 car.)      8 s
+[BUILD     ] landing.html écrit (4 985 octets) à partir de ces résultats réels
+```
+
+Puis contrôle du livrable final : `/delegate testing html_check` →
+`status=completed`, `verdict PASS` sur `~/agents/builder-agent/landing.html`
+(5 133 octets, `lang="fr"`, `<h1>` unique, viewport présent, aucun script).
+
 ## Démarrer la pile
 
 ```powershell

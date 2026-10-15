@@ -61,18 +61,22 @@ foreach ($i in 1..30) {
 if (-not $pret) { Write-Warning "Pas de reponse de l'orchestrateur - voir logs\server.err.log"; exit 1 }
 Write-Host "  /health repond ok"
 
-if (Test-Path $AgentDir) {
-    Write-Host "Agent netsec-agent (mode work)..."
-    $agentJs = Join-Path $AgentDir "agent.mjs"
+$AgentsDir = Join-Path $env:USERPROFILE "agents"
+$Agents = @("netsec-agent", "research-agent", "qa-agent")
+foreach ($nom in $Agents) {
+    $dossier = Join-Path $AgentsDir $nom
+    if (-not (Test-Path $dossier)) { Write-Warning "Agent absent : $dossier"; continue }
+    $logs = Join-Path $dossier "logs"
+    New-Item -ItemType Directory -Force -Path $logs | Out-Null
+    Write-Host ("Agent {0} (mode work)..." -f $nom)
+    $agentJs = Join-Path $dossier "agent.mjs"
     $agent = Start-Process -FilePath "node" `
         -ArgumentList ('"{0}"' -f $agentJs), "work" `
-        -WorkingDirectory $AgentDir `
-        -RedirectStandardOutput (Join-Path $AgentLog "work.log") `
-        -RedirectStandardError  (Join-Path $AgentLog "work.err.log") `
+        -WorkingDirectory $dossier `
+        -RedirectStandardOutput (Join-Path $logs "work.log") `
+        -RedirectStandardError  (Join-Path $logs "work.err.log") `
         -WindowStyle Hidden -PassThru
-    Write-Host ("  pid {0} - journal {1}" -f $agent.Id, (Join-Path $AgentLog "work.log"))
-} else {
-    Write-Warning "Dossier agent introuvable : $AgentDir"
+    Write-Host ("  pid {0} - journal {1}" -f $agent.Id, (Join-Path $logs "work.log"))
 }
 
 Write-Host ""
