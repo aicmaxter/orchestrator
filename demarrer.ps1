@@ -34,6 +34,7 @@ if ($Arreter) {
     Write-Host "Arret de la pile :"
     Stop-Matching "node.exe" "*agent.mjs*"
     Stop-Matching "python.exe" "*orchestrateur.py*"
+    Stop-Matching "python.exe" "*builder_daemon.py*"
     Write-Host "Termine."
     exit 0
 }
@@ -41,6 +42,7 @@ if ($Arreter) {
 Write-Host "Arret des instances existantes..."
 Stop-Matching "node.exe" "*agent.mjs*"
 Stop-Matching "python.exe" "*orchestrateur.py*"
+Stop-Matching "python.exe" "*builder_daemon.py*"
 Start-Sleep -Seconds 2
 
 Write-Host "Orchestrateur..."
@@ -77,6 +79,24 @@ foreach ($nom in $Agents) {
         -RedirectStandardError  (Join-Path $logs "work.err.log") `
         -WindowStyle Hidden -PassThru
     Write-Host ("  pid {0} - journal {1}" -f $agent.Id, (Join-Path $logs "work.log"))
+}
+
+Write-Host ""
+# builder-01 : present sur le reseau en permanence (builder.py ne s'inscrit que
+# le temps d'un run, sinon l'agent apparait OFFLINE dans la console).
+$BuilderDir = Join-Path $AgentsDir "builder-agent"
+$DaemonJs = Join-Path $BuilderDir "builder_daemon.py"
+if (Test-Path $DaemonJs) {
+    Write-Host "Presence reseau de builder-01 (builder_daemon.py)..."
+    $logs = Join-Path $BuilderDir "logs"
+    New-Item -ItemType Directory -Force -Path $logs | Out-Null
+    $daemon = Start-Process -FilePath "python" -ArgumentList "builder_daemon.py" -WorkingDirectory $BuilderDir `
+        -RedirectStandardOutput (Join-Path $logs "daemon.log") `
+        -RedirectStandardError  (Join-Path $logs "daemon.err.log") `
+        -WindowStyle Hidden -PassThru
+    Write-Host ("  pid {0} - journal {1}" -f $daemon.Id, (Join-Path $logs "daemon.log"))
+} else {
+    Write-Warning "builder_daemon.py introuvable : $BuilderDir"
 }
 
 Write-Host ""

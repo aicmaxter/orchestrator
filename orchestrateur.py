@@ -597,6 +597,21 @@ def admin_requeue(task_id: str, x_api_key: str | None = Header(default=None)) ->
     return {"data": get_task(task_id)}
 
 
+@app.delete("/api/v1/tasks/{task_id}")
+def admin_delete_task(task_id: str, x_api_key: str | None = Header(default=None)) -> Any:
+    """Supprime une tâche (nettoyage des essais) — action journalisée."""
+    try:
+        require_admin(x_api_key)
+    except HTTPException as e:
+        return err(401, "UNAUTHORIZED", str(e.detail))
+    row = one("SELECT * FROM tasks WHERE task_id=?", (task_id,))
+    if not row:
+        return err(404, "TASK_NOT_FOUND", f"Tâche inconnue : {task_id}")
+    x("DELETE FROM tasks WHERE task_id=?", (task_id,))
+    journal("TASK_DELETED", f"{task_id} supprimée (était {row['status']}, capability={row['capability']})", task_id=task_id)
+    return {"data": {"task_id": task_id, "supprimee": True, "etait": row["status"]}}
+
+
 @app.get("/api/v1/events")
 def admin_events(limit: int = 200, key: str | None = Query(default=None), x_api_key: str | None = Header(default=None)) -> Any:
     try:
