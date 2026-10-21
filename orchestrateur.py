@@ -320,7 +320,10 @@ def require_admin(key: str | None, request: Request | None = None) -> None:
         provided = request.headers.get("X-API-Key") or bearer(request.headers.get("Authorization")) or request.query_params.get("key")
     if not provided:
         raise HTTPException(status_code=401, detail="X-API-Key (clé opérateur) requise.")
-    if not secrets.compare_digest(provided, ADMIN_KEY):
+    if not isinstance(provided, str) or not secrets.compare_digest(
+        provided.encode("utf-8"),
+        ADMIN_KEY.encode("utf-8")
+    ): 
         raise HTTPException(status_code=401, detail="X-API-Key (clé opérateur) invalide.")
 
 

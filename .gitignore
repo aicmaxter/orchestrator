@@ -11,3 +11,8 @@ __pycache__/
 logs/
 logs-server.log
 *.log
+
+# sauvegardes et journaux de demarrage locaux
+*.bak-*
+logs-startup-*.txt
+server*.log
